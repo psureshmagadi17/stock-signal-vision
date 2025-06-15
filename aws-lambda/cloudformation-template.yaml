@@ -1,0 +1,156 @@
+
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Stock Analysis Platform - Lambda Functions and API Gateway'
+
+Parameters:
+  AlphaVantageAPIKey:
+    Type: String
+    Description: Alpha Vantage API Key
+    NoEcho: true
+
+Resources:
+  # IAM Role for Lambda functions
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: SSMParameterAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ssm:GetParameter
+                  - ssm:GetParameters
+                Resource: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/stock-analyzer/*'
+
+  # Parameter Store for API Key
+  AlphaVantageAPIKeyParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /stock-analyzer/alpha-vantage-api-key
+      Type: SecureString
+      Value: !Ref AlphaVantageAPIKey
+      Description: Alpha Vantage API Key for Stock Analysis
+
+  # Lambda Functions
+  StockDataFetcherFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: stock-data-fetcher
+      Runtime: python3.9
+      Handler: lambda_function.lambda_handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        ZipFile: |
+          # Placeholder - upload actual code via deployment script
+          def lambda_handler(event, context):
+              return {'statusCode': 200, 'body': 'Function created successfully'}
+      Timeout: 30
+      MemorySize: 256
+
+  AlphaPyAnalyzerFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: alphapy-analyzer
+      Runtime: python3.9
+      Handler: lambda_function.lambda_handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        ZipFile: |
+          # Placeholder - upload actual code via deployment script
+          def lambda_handler(event, context):
+              return {'statusCode': 200, 'body': 'Function created successfully'}
+      Timeout: 60
+      MemorySize: 512
+
+  # API Gateway
+  StockAnalysisAPI:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: stock-analysis-api
+      Description: API for Stock Analysis Platform
+
+  # API Gateway Resources and Methods
+  StockDataResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref StockAnalysisAPI
+      ParentId: !GetAtt StockAnalysisAPI.RootResourceId
+      PathPart: stock-data
+
+  StockDataMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref StockAnalysisAPI
+      ResourceId: !Ref StockDataResource
+      HttpMethod: POST
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${StockDataFetcherFunction.Arn}/invocations'
+
+  AlphaPyResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref StockAnalysisAPI
+      ParentId: !GetAtt StockAnalysisAPI.RootResourceId
+      PathPart: alphapy-analysis
+
+  AlphaPyMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref StockAnalysisAPI
+      ResourceId: !Ref AlphaPyResource
+      HttpMethod: POST
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AlphaPyAnalyzerFunction.Arn}/invocations'
+
+  # API Gateway Deployment
+  APIDeployment:
+    Type: AWS::ApiGateway::Deployment
+    DependsOn:
+      - StockDataMethod
+      - AlphaPyMethod
+    Properties:
+      RestApiId: !Ref StockAnalysisAPI
+      StageName: prod
+
+  # Lambda Permissions for API Gateway
+  StockDataFetcherPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref StockDataFetcherFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub '${StockAnalysisAPI}/*/POST/stock-data'
+
+  AlphaPyAnalyzerPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref AlphaPyAnalyzerFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub '${StockAnalysisAPI}/*/POST/alphapy-analysis'
+
+Outputs:
+  APIGatewayURL:
+    Description: API Gateway URL
+    Value: !Sub 'https://${StockAnalysisAPI}.execute-api.${AWS::Region}.amazonaws.com/prod'
+  
+  LambdaExecutionRoleArn:
+    Description: Lambda Execution Role ARN
+    Value: !GetAtt LambdaExecutionRole.Arn

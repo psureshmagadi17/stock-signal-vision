@@ -4,13 +4,16 @@ import { StockInput } from '@/components/StockInput';
 import { StockAnalysis } from '@/components/StockAnalysis';
 import { SecurityBanner } from '@/components/SecurityBanner';
 import { ApiKeyManager } from '@/components/ApiKeyManager';
+import { AWSConfigManager } from '@/components/AWSConfigManager';
 import { AlphaVantageStockData } from '@/services/alphaVantageService';
-import { Shield } from 'lucide-react';
+import { Shield, Cloud } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 const Index = () => {
   const [stockData, setStockData] = useState<AlphaVantageStockData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showApiManager, setShowApiManager] = useState(false);
+  const [showAWSManager, setShowAWSManager] = useState(false);
 
   const handleAnalysis = (data: AlphaVantageStockData[]) => {
     setStockData(data);
@@ -30,9 +33,20 @@ const Index = () => {
           <p className="text-xl text-slate-300 mb-4">
             Advanced ML-powered stock analysis with AlphaPy integration
           </p>
-          <p className="text-sm text-slate-400">
+          <p className="text-sm text-slate-400 mb-4">
             Protected by enterprise-grade security measures
           </p>
+          
+          {/* AWS Configuration Button */}
+          <div className="flex justify-center gap-4 mt-4">
+            <Button
+              onClick={() => setShowAWSManager(true)}
+              className="bg-orange-600 hover:bg-orange-700 text-white"
+            >
+              <Cloud className="h-4 w-4 mr-2" />
+              Configure AWS
+            </Button>
+          </div>
         </div>
 
         {/* Security Banner */}
@@ -60,6 +74,12 @@ const Index = () => {
         <ApiKeyManager 
           isOpen={showApiManager}
           onClose={() => setShowApiManager(false)}
+        />
+
+        {/* AWS Configuration Modal */}
+        <AWSConfigManager 
+          isOpen={showAWSManager}
+          onClose={() => setShowAWSManager(false)}
         />
       </div>
     </div>
