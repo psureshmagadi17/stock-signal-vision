@@ -42,13 +42,15 @@ export default defineConfig(({ mode }) => ({
   },
   build: {
     // Security optimizations for production builds
-    minify: 'terser',
-    terserOptions: {
-      compress: {
-        drop_console: true, // Remove console logs in production
-        drop_debugger: true
+    minify: mode === 'production' ? 'terser' : false,
+    ...(mode === 'production' && {
+      terserOptions: {
+        compress: {
+          drop_console: true, // Remove console logs in production
+          drop_debugger: true
+        }
       }
-    },
+    }),
     rollupOptions: {
       output: {
         // Prevent information leakage through chunk names
