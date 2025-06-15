@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { ComposedChart, Candlestick, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
+import { ComposedChart, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Line, Bar } from 'recharts';
 import { AlphaVantageStockData } from '@/services/alphaVantageService';
 import { AlphaPyAnalysis } from '@/services/alphaPyService';
 
@@ -18,7 +18,12 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({ stockData, a
     low: candle.low,
     close: candle.close,
     volume: candle.volume,
-    day: index + 1
+    day: index + 1,
+    // Add candlestick body data
+    bodyTop: Math.max(candle.open, candle.close),
+    bodyBottom: Math.min(candle.open, candle.close),
+    bodyHeight: Math.abs(candle.close - candle.open),
+    isGreen: candle.close > candle.open
   }));
 
   const CustomTooltip = ({ active, payload, label }: any) => {
@@ -40,35 +45,49 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({ stockData, a
     return null;
   };
 
-  // Custom candlestick component since recharts doesn't have built-in candlestick
-  const CustomCandlestick = ({ payload, x, y, width, height }: any) => {
+  // Custom candlestick rendering function
+  const renderCandlestick = (props: any) => {
+    const { payload, x, width } = props;
     if (!payload) return null;
     
     const { open, high, low, close } = payload;
     const isRising = close > open;
     const color = isRising ? '#10B981' : '#EF4444';
-    const bodyHeight = Math.abs(close - open) * (height / (high - low));
-    const bodyY = y + (high - Math.max(open, close)) * (height / (high - low));
+    
+    // Calculate positions
+    const centerX = x + width / 2;
+    const bodyWidth = width * 0.6;
+    const bodyLeft = centerX - bodyWidth / 2;
+    
+    // Find Y positions based on chart scale
+    const yScale = props.yAxisMap?.y || ((val: number) => val);
+    const highY = yScale(high);
+    const lowY = yScale(low);
+    const openY = yScale(open);
+    const closeY = yScale(close);
+    const bodyTop = Math.min(openY, closeY);
+    const bodyHeight = Math.abs(closeY - openY);
     
     return (
-      <g>
-        {/* Wick */}
+      <g key={`candlestick-${x}`}>
+        {/* Wick line */}
         <line
-          x1={x + width / 2}
-          y1={y}
-          x2={x + width / 2}
-          y2={y + height}
+          x1={centerX}
+          y1={highY}
+          x2={centerX}
+          y2={lowY}
           stroke={color}
           strokeWidth={1}
         />
-        {/* Body */}
+        {/* Body rectangle */}
         <rect
-          x={x + width * 0.25}
-          y={bodyY}
-          width={width * 0.5}
-          height={bodyHeight}
-          fill={color}
+          x={bodyLeft}
+          y={bodyTop}
+          width={bodyWidth}
+          height={bodyHeight || 1}
+          fill={isRising ? color : 'transparent'}
           stroke={color}
+          strokeWidth={1}
         />
       </g>
     );
@@ -92,6 +111,10 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({ stockData, a
             domain={['dataMin - 2', 'dataMax + 2']}
           />
           <Tooltip content={<CustomTooltip />} />
+          
+          {/* Invisible bar to create proper scaling */}
+          <Bar dataKey="high" fill="transparent" />
+          <Bar dataKey="low" fill="transparent" />
           
           {/* Bollinger Bands */}
           <ReferenceLine 
@@ -132,6 +155,9 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({ stockData, a
               label={{ value: `Sell ${level.probability}%`, position: "right" }}
             />
           ))}
+          
+          {/* Close price line */}
+          <Line type="monotone" dataKey="close" stroke="#FFFFFF" strokeWidth={1} dot={false} />
         </ComposedChart>
       </ResponsiveContainer>
       
