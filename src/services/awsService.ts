@@ -5,8 +5,9 @@ export class AWSService {
   private baseUrl: string;
   
   private constructor() {
-    // In production, these would be environment variables
-    this.baseUrl = process.env.AWS_API_GATEWAY_URL || 'https://your-api-gateway-url.amazonaws.com/prod';
+    // Load from localStorage if available, otherwise use placeholder
+    const savedUrl = localStorage.getItem('aws_api_gateway_url');
+    this.baseUrl = savedUrl || 'https://your-api-gateway-url.amazonaws.com/prod';
   }
   
   public static getInstance(): AWSService {
