@@ -1,24 +1,14 @@
-
 import React, { useState } from 'react';
 import { StockInput } from '@/components/StockInput';
 import { StockAnalysis } from '@/components/StockAnalysis';
 import { TrendingUp, BarChart3, Brain, Target } from 'lucide-react';
-
-export interface StockData {
-  symbol: string;
-  currentPrice: number;
-  change: number;
-  changePercent: number;
-  volume: number;
-  marketCap: string;
-  historicalPrices: number[];
-}
+import { AlphaVantageStockData } from '@/services/alphaVantageService';
 
 const Index = () => {
-  const [analyzedStocks, setAnalyzedStocks] = useState<StockData[]>([]);
+  const [analyzedStocks, setAnalyzedStocks] = useState<AlphaVantageStockData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleStockAnalysis = (stocks: StockData[]) => {
+  const handleStockAnalysis = (stocks: AlphaVantageStockData[]) => {
     setAnalyzedStocks(stocks);
   };
 
@@ -32,7 +22,7 @@ const Index = () => {
             <h1 className="text-4xl font-bold text-white">Stock Analysis AI</h1>
           </div>
           <p className="text-xl text-slate-300 max-w-3xl mx-auto">
-            Advanced technical analysis with ML-powered buy/sell recommendations and risk assessment
+            Real-time Alpha Vantage data with AlphaPy ML analysis and candlestick visualization
           </p>
         </div>
 
@@ -40,18 +30,18 @@ const Index = () => {
         <div className="grid md:grid-cols-3 gap-6 mb-12">
           <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-6 border border-slate-700/50">
             <BarChart3 className="h-8 w-8 text-blue-400 mb-3" />
-            <h3 className="text-lg font-semibold text-white mb-2">Technical Analysis</h3>
-            <p className="text-slate-400">Moving averages, RSI, and support/resistance levels</p>
+            <h3 className="text-lg font-semibold text-white mb-2">Alpha Vantage API</h3>
+            <p className="text-slate-400">Real-time stock data with historical candlestick charts</p>
           </div>
           <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-6 border border-slate-700/50">
             <Brain className="h-8 w-8 text-purple-400 mb-3" />
-            <h3 className="text-lg font-semibold text-white mb-2">ML Predictions</h3>
-            <p className="text-slate-400">AI-powered probability analysis and confidence scoring</p>
+            <h3 className="text-lg font-semibold text-white mb-2">AlphaPy ML Analysis</h3>
+            <p className="text-slate-400">Advanced machine learning predictions with confidence scoring</p>
           </div>
           <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-6 border border-slate-700/50">
             <Target className="h-8 w-8 text-emerald-400 mb-3" />
-            <h3 className="text-lg font-semibold text-white mb-2">Risk Assessment</h3>
-            <p className="text-slate-400">Upside potential and downside risk calculations</p>
+            <h3 className="text-lg font-semibold text-white mb-2">Candlestick Charts</h3>
+            <p className="text-slate-400">Professional trading visualization with technical indicators</p>
           </div>
         </div>
 

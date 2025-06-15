@@ -1,20 +1,35 @@
-
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { StockData } from '@/pages/Index';
-import { calculateTechnicalIndicators, generateMLAnalysis } from '@/utils/technicalAnalysis';
-import { StockChart } from '@/components/StockChart';
+import { AlphaVantageStockData } from '@/services/alphaVantageService';
+import { runAlphaPyAnalysis, AlphaPyAnalysis } from '@/services/alphaPyService';
+import { CandlestickChart } from '@/components/CandlestickChart';
 import { TrendingUp, TrendingDown, Target, Brain, AlertTriangle } from 'lucide-react';
 
 interface StockAnalysisProps {
-  stockData: StockData;
+  stockData: AlphaVantageStockData;
 }
 
 export const StockAnalysis: React.FC<StockAnalysisProps> = ({ stockData }) => {
-  const technicalData = calculateTechnicalIndicators(stockData);
-  const mlAnalysis = generateMLAnalysis(stockData, technicalData);
-  
+  const [analysis, setAnalysis] = useState<AlphaPyAnalysis | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(true);
+
+  useEffect(() => {
+    const performAnalysis = async () => {
+      setIsAnalyzing(true);
+      try {
+        const mlAnalysis = await runAlphaPyAnalysis(stockData);
+        setAnalysis(mlAnalysis);
+      } catch (error) {
+        console.error('Error running AlphaPy analysis:', error);
+      } finally {
+        setIsAnalyzing(false);
+      }
+    };
+
+    performAnalysis();
+  }, [stockData]);
+
   const getChangeColor = (change: number) => {
     return change >= 0 ? 'text-emerald-400' : 'text-red-400';
   };
@@ -27,6 +42,17 @@ export const StockAnalysis: React.FC<StockAnalysisProps> = ({ stockData }) => {
       default: return 'bg-slate-900/30 text-slate-400 border-slate-700';
     }
   };
+
+  if (isAnalyzing || !analysis) {
+    return (
+      <Card className="bg-slate-800/50 backdrop-blur-sm border-slate-700/50">
+        <CardContent className="p-8 text-center">
+          <Brain className="h-8 w-8 text-purple-400 mx-auto mb-4 animate-pulse" />
+          <p className="text-white">Running AlphaPy ML Analysis...</p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="bg-slate-800/50 backdrop-blur-sm border-slate-700/50">
@@ -48,70 +74,81 @@ export const StockAnalysis: React.FC<StockAnalysisProps> = ({ stockData }) => {
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Chart */}
-        <div className="h-64">
-          <StockChart stockData={stockData} technicalData={technicalData} />
+        {/* Candlestick Chart */}
+        <div>
+          <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
+            <Target className="h-5 w-5 text-blue-400 mr-2" />
+            Price Action & Technical Analysis
+          </h3>
+          <CandlestickChart stockData={stockData} analysis={analysis} />
         </div>
 
-        {/* Technical Indicators */}
+        {/* AlphaPy ML Analysis Results */}
         <div className="grid md:grid-cols-2 gap-6">
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-white flex items-center">
-              <Target className="h-5 w-5 text-blue-400 mr-2" />
-              Technical Indicators
+              <Brain className="h-5 w-5 text-purple-400 mr-2" />
+              AlphaPy ML Analysis
             </h3>
-            <div className="space-y-2 text-sm">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-slate-400">Confidence:</span>
+                <Badge className={getConfidenceColor(analysis.confidence)}>
+                  {analysis.confidence}
+                </Badge>
+              </div>
               <div className="flex justify-between">
-                <span className="text-slate-400">RSI (14):</span>
+                <span className="text-slate-400">Success Probability:</span>
+                <span className="text-white">{analysis.successProbability}%</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-400">Risk Score:</span>
                 <span className={`font-medium ${
-                  technicalData.rsi > 70 ? 'text-red-400' : 
-                  technicalData.rsi < 30 ? 'text-emerald-400' : 'text-yellow-400'
+                  analysis.riskScore > 7 ? 'text-red-400' : 
+                  analysis.riskScore > 4 ? 'text-yellow-400' : 'text-emerald-400'
                 }`}>
-                  {technicalData.rsi.toFixed(1)}
+                  {analysis.riskScore}/10
                 </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400">MA (20):</span>
-                <span className="text-white">${technicalData.ma20.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400">MA (50):</span>
-                <span className="text-white">${technicalData.ma50.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400">Support:</span>
-                <span className="text-emerald-400">${technicalData.support.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400">Resistance:</span>
-                <span className="text-red-400">${technicalData.resistance.toFixed(2)}</span>
               </div>
             </div>
           </div>
 
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-white flex items-center">
-              <Brain className="h-5 w-5 text-purple-400 mr-2" />
-              ML Analysis
+              <Target className="h-5 w-5 text-blue-400 mr-2" />
+              Advanced Indicators
             </h3>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-slate-400">Confidence:</span>
-                <Badge className={getConfidenceColor(mlAnalysis.confidence)}>
-                  {mlAnalysis.confidence}
-                </Badge>
-              </div>
+            <div className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-slate-400">Success Probability:</span>
-                <span className="text-white">{mlAnalysis.successProbability}%</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400">Risk Score:</span>
+                <span className="text-slate-400">RSI (14):</span>
                 <span className={`font-medium ${
-                  mlAnalysis.riskScore > 7 ? 'text-red-400' : 
-                  mlAnalysis.riskScore > 4 ? 'text-yellow-400' : 'text-emerald-400'
+                  analysis.technicalIndicators.rsi > 70 ? 'text-red-400' : 
+                  analysis.technicalIndicators.rsi < 30 ? 'text-emerald-400' : 'text-yellow-400'
                 }`}>
-                  {mlAnalysis.riskScore}/10
+                  {analysis.technicalIndicators.rsi.toFixed(1)}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-400">MACD:</span>
+                <span className={`font-medium ${analysis.technicalIndicators.macd > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                  {analysis.technicalIndicators.macd.toFixed(2)}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-400">Bollinger Upper:</span>
+                <span className="text-white">${analysis.technicalIndicators.bollinger.upper.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-400">Bollinger Lower:</span>
+                <span className="text-white">${analysis.technicalIndicators.bollinger.lower.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-400">Stochastic:</span>
+                <span className={`font-medium ${
+                  analysis.technicalIndicators.stochastic > 80 ? 'text-red-400' : 
+                  analysis.technicalIndicators.stochastic < 20 ? 'text-emerald-400' : 'text-yellow-400'
+                }`}>
+                  {analysis.technicalIndicators.stochastic.toFixed(1)}
                 </span>
               </div>
             </div>
@@ -128,7 +165,7 @@ export const StockAnalysis: React.FC<StockAnalysisProps> = ({ stockData }) => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              {mlAnalysis.buyLevels.map((level, index) => (
+              {analysis.buyLevels.map((level, index) => (
                 <div key={index} className="bg-emerald-900/30 p-3 rounded-lg">
                   <div className="flex justify-between items-center mb-2">
                     <span className="font-semibold text-emerald-300">${level.price.toFixed(2)}</span>
@@ -152,7 +189,7 @@ export const StockAnalysis: React.FC<StockAnalysisProps> = ({ stockData }) => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              {mlAnalysis.sellLevels.map((level, index) => (
+              {analysis.sellLevels.map((level, index) => (
                 <div key={index} className="bg-red-900/30 p-3 rounded-lg">
                   <div className="flex justify-between items-center mb-2">
                     <span className="font-semibold text-red-300">${level.price.toFixed(2)}</span>
@@ -176,10 +213,10 @@ export const StockAnalysis: React.FC<StockAnalysisProps> = ({ stockData }) => {
               <AlertTriangle className="h-5 w-5 text-yellow-400 mr-3" />
               <div>
                 <span className="font-semibold text-yellow-300">Current Position: </span>
-                <span className="text-white">{mlAnalysis.currentSignal}</span>
+                <span className="text-white">{analysis.currentSignal}</span>
               </div>
             </div>
-            <p className="text-sm text-yellow-200 mt-2">{mlAnalysis.recommendation}</p>
+            <p className="text-sm text-yellow-200 mt-2">{analysis.recommendation}</p>
           </CardContent>
         </Card>
       </CardContent>

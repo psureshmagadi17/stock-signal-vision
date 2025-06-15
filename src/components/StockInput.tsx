@@ -1,14 +1,12 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Plus, X, TrendingUp } from 'lucide-react';
-import { generateMockStockData } from '@/utils/stockDataGenerator';
-import { StockData } from '@/pages/Index';
+import { fetchStockData, AlphaVantageStockData } from '@/services/alphaVantageService';
 
 interface StockInputProps {
-  onAnalysis: (stocks: StockData[]) => void;
+  onAnalysis: (stocks: AlphaVantageStockData[]) => void;
   isLoading: boolean;
   setIsLoading: (loading: boolean) => void;
 }
@@ -58,13 +56,12 @@ export const StockInput: React.FC<StockInputProps> = ({ onAnalysis, isLoading, s
     setError('');
 
     try {
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      const stockData = validTickers.map(ticker => generateMockStockData(ticker));
+      const stockDataPromises = validTickers.map(ticker => fetchStockData(ticker));
+      const stockData = await Promise.all(stockDataPromises);
       onAnalysis(stockData);
     } catch (err) {
-      setError('Failed to fetch stock data. Please try again.');
+      setError(err instanceof Error ? err.message : 'Failed to fetch stock data. Please try again.');
+      console.error('Error fetching stock data:', err);
     } finally {
       setIsLoading(false);
     }
