@@ -19,8 +19,8 @@ export default defineConfig(({ mode }) => ({
       // Content Security Policy
       'Content-Security-Policy': [
         "default-src 'self'",
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval'", // Required for React dev
-        "style-src 'self' 'unsafe-inline'", // Required for Tailwind
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+        "style-src 'self' 'unsafe-inline'",
         "connect-src 'self' https://www.alphavantage.co https://*.alphavantage.co",
         "img-src 'self' data: https:",
         "font-src 'self' data:",
@@ -32,8 +32,7 @@ export default defineConfig(({ mode }) => ({
   },
   plugins: [
     react(),
-    mode === 'development' &&
-    componentTagger(),
+    mode === 'development' && componentTagger(),
   ].filter(Boolean),
   resolve: {
     alias: {
@@ -41,19 +40,17 @@ export default defineConfig(({ mode }) => ({
     },
   },
   build: {
-    // Security optimizations for production builds
     minify: mode === 'production' ? 'terser' : false,
     ...(mode === 'production' && {
       terserOptions: {
         compress: {
-          drop_console: true, // Remove console logs in production
+          drop_console: true,
           drop_debugger: true
         }
       }
     }),
     rollupOptions: {
       output: {
-        // Prevent information leakage through chunk names
         manualChunks: undefined,
         chunkFileNames: 'assets/[hash].js',
         entryFileNames: 'assets/[hash].js',
