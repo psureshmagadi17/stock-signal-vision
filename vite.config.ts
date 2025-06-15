@@ -7,27 +7,12 @@ import { componentTagger } from "lovable-tagger";
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
   server: {
-    host: "::",
+    host: "0.0.0.0",
     port: 8080,
-    headers: {
-      // Security headers
-      'X-Content-Type-Options': 'nosniff',
-      'X-Frame-Options': 'DENY',
-      'X-XSS-Protection': '1; mode=block',
-      'Referrer-Policy': 'strict-origin-when-cross-origin',
-      'Permissions-Policy': 'geolocation=(), microphone=(), camera=()',
-      // Content Security Policy
-      'Content-Security-Policy': [
-        "default-src 'self'",
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
-        "style-src 'self' 'unsafe-inline'",
-        "connect-src 'self' https://www.alphavantage.co https://*.alphavantage.co",
-        "img-src 'self' data: https:",
-        "font-src 'self' data:",
-        "object-src 'none'",
-        "base-uri 'self'",
-        "form-action 'self'"
-      ].join('; ')
+    strictPort: true,
+    hmr: {
+      port: 8080,
+      clientPort: 8080
     }
   },
   plugins: [
